@@ -1,49 +1,35 @@
 package jwt_auth.auth;
 
 import java.time.Instant;
-import java.util.Base64;
-import java.util.Date;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
 import jwt_auth.User.User;
 
 @Service
 public class JwtService {
 
-    private final SecretKey key;
+    private final JwtEncoder encoder;
 
-    public JwtService(@Value("${jwt.key}") String b64key) {
-        key = new SecretKeySpec(Base64.getDecoder().decode(b64key), "HmacSHA256");
+    public JwtService(JwtEncoder encoder) {
+        this.encoder = encoder;
     }
 
     public String generateToken(User user) {
         Instant now = Instant.now();
-        long expSeconds = 60 * 60 * 24 * 30; // 1 month
+        long expirySeconds = 60 * 60 * 24 * 30; // 1 month
 
-        return Jwts.builder()
-            .issuedAt(Date.from(now))
-            .expiration(Date.from(now.plusSeconds(expSeconds)))
+        var jwtClaims = JwtClaimsSet
+            .builder()
+            .issuedAt(now)
+            .expiresAt(now.plusSeconds(expirySeconds))
             .subject(user.getEmail())
-            .signWith(key)
-            .compact();
+            .build();
+
+        return encoder
+            .encode(JwtEncoderParameters.from(jwtClaims))
+            .getTokenValue();
     }
 
-    public String getSubjectFromToken(String jwt) {
-        try {
-            Jws<Claims> jws = Jwts
-                .parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(jwt);
-            return jws.getPayload().getSubject();
-        } catch (JwtException | IllegalArgumentException ex) {
-            return null;
-        }
-    }
 }

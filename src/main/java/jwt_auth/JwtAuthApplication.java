@@ -19,7 +19,7 @@ public class JwtAuthApplication {
     @ResponseStatus(HttpStatus.OK)
     public String privateResource() {
         return "hello authenticated user "
-            + SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            + SecurityContextHolder.getContext().getAuthentication().getName();
     }
 
 }
